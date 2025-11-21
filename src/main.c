@@ -9,6 +9,7 @@
 #include "camera_client_async.h"
 #include "liangyuan_lrf_905.h"
 #include "gimbal_ctrl.h"
+#include "multimedia_api.h"
 
 #define VISCA_CAM_DEV "/dev/ttyS1"
 #define LRF_UART_DEV "/dev/ttyS3"
@@ -24,6 +25,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    init_multimedia_api();
+
     // 2. 初始化 LRF 模块 (GPIO 上电 + UART 打开)
     if (lrf_init(LRF_UART_DEV, GPIO_CHIP_DEV, GPIO_LINE_NUM) < 0) {
         fprintf(stderr, "LRF Init failed\n");
@@ -37,36 +40,36 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Warning: VISCA Init failed, proceeding anyway...\n");
     }
 
-    // 1. 初始化云台控制
+    // 4. 初始化云台控制
     if (gimbal_ctrl_init(GIMBAL_UART_DEV) < 0) { 
         fprintf(stderr, "Gimbal Init failed.\n");
     }
 
-    // 4. 初始化异步相机客户端 (用于发送 start_video_recording 等)
+    // 5. 初始化异步相机客户端 (用于发送 start_video_recording 等)
     CameraClient *cam_client = camera_client_init(loop, "127.0.0.1", 14590);
     if (!cam_client) {
         fprintf(stderr, "Failed to init camera client\n");
     }
 
-    // 5. 启动 Netlink 监听 (内核事件 -> VISCA)
+    // 6. 启动 Netlink 监听 (内核事件 -> VISCA)
     int netlink_fd = start_netlink_listener(loop);
     if (netlink_fd < 0) {
         fprintf(stderr, "Failed to start Netlink listener\n");
     }
 
-    // 6. 启动 Mavlink 监听 (UDP -> VISCA)
+    // 7. 启动 Mavlink 监听 (UDP -> VISCA)
     int mavlink_fd = start_mavlink_listener(loop, "0.0.0.0", 3000);
     if (mavlink_fd < 0) {
         fprintf(stderr, "Failed to start Mavlink listener\n");
     }
 
-    // 2. 启动云台监听
+    // 8. 启动云台监听
     // 注意：gimbal_ctrl_start 需要一个初始回复地址。
     if (gimbal_ctrl_start(loop) < 0) {
          fprintf(stderr, "Gimbal Start failed.\n");
     }
 
-    // 7. 启动 LRF 监听 (把 UART fd 加入 loop)
+    // 9. 启动 LRF 监听 (把 UART fd 加入 loop)
     if (lrf_start(loop, cam_client) == 0) {
         printf("LRF Module Started.\n");
         
@@ -77,10 +80,11 @@ int main(int argc, char **argv) {
 
     printf("Service started. Waiting for events...\n");
 
-    // 8. 进入主循环
+    // 10. 进入主循环
     aeMain(loop);
 
-    // 9. 清理资源 (如果 aeMain 退出)
+    // 11. 清理资源 (如果 aeMain 退出)
+    deinit_multimedia_api();
     gimbal_ctrl_cleanup(loop);
     lrf_cleanup(loop);
     aeDeleteEventLoop(loop);
