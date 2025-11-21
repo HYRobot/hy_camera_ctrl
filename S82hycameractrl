@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# /etc/init.d/S82hycameractrl
+# Start hy_camera_ctrl on boot
+#
+
+### BEGIN INIT INFO
+# Provides:          hy_camera_ctrl
+# Required-Start:    $network
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: hy_camera_ctrl daemon
+### END INIT INFO
+
+
+HY_CAMERA_CTRL_BIN="/usr/bin/hy_camera_ctrl"
+
+start() {
+    echo "Starting hy_camera_ctrl..."
+    # log
+    start-stop-daemon -S -b -x $HY_CAMERA_CTRL_BIN 2>&1
+}
+
+stop() {
+    echo "Stopping hy_camera_ctrl..."
+    start-stop-daemon -K -x $HY_CAMERA_CTRL_BIN
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        sleep 1
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
+

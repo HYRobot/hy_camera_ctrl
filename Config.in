@@ -1,0 +1,4 @@
+config BR2_PACKAGE_HY_CAMERA_CTRL
+    bool "hy_camera_ctrl"
+    help
+      A simple camera control utility using libvisca to control zoom.
